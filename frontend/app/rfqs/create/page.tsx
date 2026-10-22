@@ -9,12 +9,16 @@ import {
   Sparkles,
   ShieldCheck,
   Calendar,
-  Clock,
   AlertCircle,
   HelpCircle,
-  Copy,
-  Check,
-  Rocket
+  CheckCircle2,
+  Users,
+  BarChart2,
+  Award,
+  FileText,
+  Settings,
+  Send,
+  ChevronDown
 } from "lucide-react";
 
 export default function CreateRFQPage() {
@@ -31,41 +35,63 @@ export default function CreateRFQPage() {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const [referenceId, setReferenceId] = useState("RFQ-6892-SEA");
-  const [title, setTitle] = useState("Nhava Sheva to Felixstowe 30x40ft Standard FCL");
-  const [pickupDate, setPickupDate] = useState("2026-11-05");
-  const [bidStartTime, setBidStartTime] = useState("2026-10-22T20:59");
-  const [bidCloseTime, setBidCloseTime] = useState("2026-10-22T22:04");
-  const [forcedBidCloseTime, setForcedBidCloseTime] = useState("2026-10-22T23:04");
+  const formatDisplayDate = (dStr: string) => {
+    if (!dStr) return "-";
+    try {
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return dStr;
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return dStr;
+    }
+  };
+
+  const formatDisplayDateTime = (dtStr: string) => {
+    if (!dtStr) return "-";
+    try {
+      const d = new Date(dtStr);
+      if (isNaN(d.getTime())) return dtStr;
+      return d.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return dtStr;
+    }
+  };
+
+  const [referenceId, setReferenceId] = useState("RFQ-2025-0174");
+  const [title, setTitle] = useState("New Delhi → Mumbai (NH48)");
+  const [pickupDate, setPickupDate] = useState("2025-05-12");
+  const [bidStartTime, setBidStartTime] = useState("2025-05-12T10:00");
+  const [bidCloseTime, setBidCloseTime] = useState("2025-05-12T16:00");
+  const [forcedBidCloseTime, setForcedBidCloseTime] = useState("2025-05-12T18:00");
 
   const [isBritishAuction, setIsBritishAuction] = useState(true);
-  const [triggerWindowMinutes, setTriggerWindowMinutes] = useState("10.0");
-  const [extensionDurationMinutes, setExtensionDurationMinutes] = useState("5.0");
+  const [triggerWindowMinutes, setTriggerWindowMinutes] = useState("3");
+  const [extensionDurationMinutes, setExtensionDurationMinutes] = useState("2");
   const [extensionTriggerType, setExtensionTriggerType] = useState<
     "BID_RECEIVED" | "ANY_RANK_CHANGE" | "L1_RANK_CHANGE"
   >("BID_RECEIVED");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // Initialize client-side current timestamps on mount
   useEffect(() => {
     const t = new Date();
-    setReferenceId(`RFQ-${Math.floor(1000 + Math.random() * 9000)}-SEA`);
+    setReferenceId(`RFQ-${Math.floor(1000 + Math.random() * 9000)}-0174`);
     setPickupDate(new Date(t.getTime() + 14 * 24 * 3600 * 1000).toISOString().split("T")[0]);
     setBidStartTime(formatDatetimeLocal(new Date(t.getTime() - 5 * 60 * 1000)));
     setBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 65 * 60 * 1000)));
     setForcedBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 125 * 60 * 1000)));
   }, []);
 
-  const copyRefId = () => {
-    navigator.clipboard.writeText(referenceId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Quick Demo Preset Generator matching Screenshot 2
+  // Quick Demo Preset Generator
   const loadDemoPreset = () => {
     const t = new Date();
     setReferenceId(`DEMO-${Math.floor(100 + Math.random() * 900)}-LIVE`);
@@ -74,8 +100,8 @@ export default function CreateRFQPage() {
     setBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 90 * 1000))); // 90 seconds from now
     setForcedBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 240 * 1000))); // 4 mins hard stop
     setIsBritishAuction(true);
-    setTriggerWindowMinutes("1.5"); // 90 seconds trigger window
-    setExtensionDurationMinutes("1.0"); // 60s extension
+    setTriggerWindowMinutes("1.5");
+    setExtensionDurationMinutes("1.0");
     setExtensionTriggerType("BID_RECEIVED");
     setError(null);
   };
@@ -124,367 +150,515 @@ export default function CreateRFQPage() {
     }
   };
 
+  const getTriggerLabel = (type: string) => {
+    switch (type) {
+      case "BID_RECEIVED":
+        return "Any bid in last X seconds";
+      case "ANY_RANK_CHANGE":
+        return "Bid price change";
+      case "L1_RANK_CHANGE":
+        return "Lowest bidder is in change";
+      default:
+        return type;
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
-      {/* Top Header Bar with Back Link and Preset Button matching Screenshot 2 */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 text-slate-500" />
-          <span>Back to Auctions Dashboard</span>
-        </Link>
+      {/* Top Breadcrumb & Page Heading matching Screenshot */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-1.5 text-xs text-slate-500 mb-1.5 font-medium">
+            <Link href="/" className="hover:text-blue-600 transition-colors">
+              Auctions
+            </Link>
+            <span>/</span>
+            <span className="text-slate-800">Create RFQ</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Create freight RFQ
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Configure your freight requirements, set the auction schedule, and define British auction rules.
+          </p>
+        </div>
 
+        {/* Demo Preset Button */}
         <button
           type="button"
           onClick={loadDemoPreset}
-          className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-all shadow-sm"
+          className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-all shadow-2xs self-start sm:self-auto"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
           <span>Populate 2-Minute Demo Preset</span>
         </button>
       </div>
 
-      {/* Main White Card matching Screenshot 2 */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-        {/* Title & Badge */}
-        <div className="mb-8">
-          <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-xs font-semibold mb-3">
-            <Clock className="w-3.5 h-3.5 text-blue-600" />
-            <span>RFQ Creation Form</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Create Freight RFQ with British Auction
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Configure dynamic extension trigger windows, duration, and the mandatory forced close ceiling.
-          </p>
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <span>{error}</span>
         </div>
+      )}
 
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+      {/* Main 2-Column Grid matching Screenshot */}
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column (Cards 1, 2, 3) */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Card 1: RFQ details */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+              <div className="flex items-center space-x-3 mb-5">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  1
+                </span>
+                <div>
+                  <h2 className="font-extrabold text-sm text-slate-900 inline mr-2">RFQ details</h2>
+                  <span className="text-xs text-slate-500">
+                    Provide the key details for your freight request.
+                  </span>
+                </div>
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Step 1: General RFQ Details */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2.5">
-              <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                1
-              </span>
-              <h2 className="font-extrabold text-sm text-slate-900">General RFQ Details</h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-              <div className="sm:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  RFQ Reference ID <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Reference ID */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    <span>Reference ID</span>
+                    <HelpCircle className="w-3.5 h-3.5 text-slate-400 inline ml-1" />
+                  </label>
                   <input
                     type="text"
                     required
                     value={referenceId}
                     onChange={(e) => setReferenceId(e.target.value)}
-                    className="w-full px-3 py-2 pr-9 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                    placeholder="e.g., RFQ-6892-SEA"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                    placeholder="e.g., RFQ-2025-0174"
                   />
-                  <button
-                    type="button"
-                    onClick={copyRefId}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    title="Copy Reference ID"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
+                </div>
+
+                {/* RFQ Title / Route */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    RFQ Title / Route
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                    placeholder="New Delhi → Mumbai (NH48)"
+                  />
+                </div>
+
+                {/* Pickup / Service Date */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Pickup / Service Date
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      required
+                      value={pickupDate}
+                      onChange={(e) => setPickupDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div className="sm:col-span-8">
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  RFQ Title / Route Description <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                  placeholder="e.g., Nhava Sheva to Felixstowe 30x40ft Standard FCL"
-                />
-              </div>
             </div>
 
-            <div className="sm:w-1/2">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Pickup / Service Date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Step 2: Auction Timestamps & Ceiling Rule */}
-          <div className="space-y-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
+            {/* Card 2: Auction schedule */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+              <div className="flex items-center space-x-3 mb-5">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                   2
                 </span>
-                <h2 className="font-extrabold text-sm text-slate-900">
-                  Auction Timestamps & Ceiling Rule
-                </h2>
-              </div>
-              <span className="text-xs text-slate-500 font-medium">
-                Rule: Forced Close must be later than Bid Close
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Bid Start Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={bidStartTime}
-                  onChange={(e) => setBidStartTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-500 shadow-sm"
-                />
+                <div>
+                  <h2 className="font-extrabold text-sm text-slate-900 inline mr-2">
+                    Auction schedule
+                  </h2>
+                  <span className="text-xs text-slate-500">Set the timeline for your auction.</span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Bid Close Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={bidCloseTime}
-                  onChange={(e) => setBidCloseTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-xs focus:outline-none focus:border-blue-500 shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-amber-900 mb-1.5 flex items-center space-x-1">
-                  <span>Forced Bid Close Date & Time</span>
-                  <HelpCircle className="w-3.5 h-3.5 text-amber-600" />
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={forcedBidCloseTime}
-                  onChange={(e) => setForcedBidCloseTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-amber-50/30 border-2 border-amber-400 text-slate-900 font-mono text-xs focus:outline-none focus:border-amber-500 shadow-sm"
-                />
-              </div>
-            </div>
-
-            {/* Amber Hard Ceiling Enforcement Banner matching Screenshot 2 */}
-            <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-center space-x-2.5">
-              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>Hard Ceiling Enforcement:</strong> British Auction extensions will dynamically push back the close time, but the engine guarantees bidding strictly terminates at or before the Forced Close Time.
-              </span>
-            </div>
-          </div>
-
-          {/* Step 3: British Auction Configuration */}
-          <div className="space-y-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                  3
-                </span>
-                <h2 className="font-extrabold text-sm text-slate-900">
-                  British Auction Configuration
-                </h2>
-              </div>
-
-              {/* Blue Toggle Switch matching Screenshot 2 */}
-              <label className="flex items-center space-x-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isBritishAuction}
-                  onChange={(e) => setIsBritishAuction(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 relative"></div>
-                <span className="text-xs font-bold text-slate-800">Enable British Auction</span>
-              </label>
-            </div>
-
-            {isBritishAuction && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Trigger Window (X Minutes)
-                    </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Bid start date & time */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Bid start date & time
+                  </label>
+                  <div className="relative">
                     <input
-                      type="number"
-                      step="0.1"
-                      min="0.1"
+                      type="datetime-local"
                       required
-                      value={triggerWindowMinutes}
-                      onChange={(e) => setTriggerWindowMinutes(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      value={bidStartTime}
+                      onChange={(e) => setBidStartTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs font-mono"
                     />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Activity within this window before close time triggers extension.
-                    </span>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Extension Duration (Y Minutes)
-                    </label>
+                {/* Bid close date & time */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Bid close date & time
+                  </label>
+                  <div className="relative">
                     <input
-                      type="number"
-                      step="0.1"
-                      min="0.1"
+                      type="datetime-local"
                       required
-                      value={extensionDurationMinutes}
-                      onChange={(e) => setExtensionDurationMinutes(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                      value={bidCloseTime}
+                      onChange={(e) => setBidCloseTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs font-mono"
                     />
-                    <span className="text-[11px] text-slate-500 mt-1 block">
-                      Minutes added to close time when trigger condition is met.
+                  </div>
+                </div>
+
+                {/* Forced close date & time */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Forced close date & time
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="datetime-local"
+                      required
+                      value={forcedBidCloseTime}
+                      onChange={(e) => setForcedBidCloseTime(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: British auction rules */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center space-x-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    3
+                  </span>
+                  <div>
+                    <h2 className="font-extrabold text-sm text-slate-900 inline mr-2">
+                      British auction rules
+                    </h2>
+                    <span className="text-xs text-slate-500">
+                      Enable British auction format and configure the settings.
                     </span>
                   </div>
                 </div>
 
-                {/* Extension Trigger Condition (Select Rule) with 3 Radio Cards matching Screenshot 2 */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-2">
-                    Extension Trigger Condition (Select Rule):
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Card A */}
+                {/* Toggle switch for British Auction */}
+                <div className="flex items-center space-x-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsBritishAuction(!isBritishAuction)}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                      isBritishAuction ? "bg-blue-600" : "bg-slate-300"
+                    }`}
+                  >
                     <div
-                      onClick={() => setExtensionTriggerType("BID_RECEIVED")}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        extensionTriggerType === "BID_RECEIVED"
-                          ? "border-2 border-blue-600 bg-blue-50/30 shadow-sm"
-                          : "border border-slate-200 bg-white hover:border-slate-300"
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        isBritishAuction ? "translate-x-5" : "translate-x-0"
                       }`}
-                    >
-                      <div className="flex items-center space-x-2 font-bold text-xs text-slate-900 mb-1">
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            extensionTriggerType === "BID_RECEIVED"
-                              ? "border-blue-600 bg-white"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {extensionTriggerType === "BID_RECEIVED" && (
-                            <div className="w-2 h-2 rounded-full bg-blue-600" />
-                          )}
-                        </div>
-                        <span className="flex items-center space-x-1">
-                          <span>Any Bid Received</span>
-                          <HelpCircle className="w-3 h-3 text-slate-400" />
+                    />
+                  </button>
+                  <span className="text-xs font-semibold text-slate-700">
+                    British auction enabled
+                  </span>
+                </div>
+              </div>
+
+              {isBritishAuction && (
+                <div className="space-y-6 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Trigger window */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        <span>Trigger window (min)</span>
+                        <HelpCircle className="w-3.5 h-3.5 text-slate-400 inline ml-1" />
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          step="0.1"
+                          required
+                          min="0.1"
+                          value={triggerWindowMinutes}
+                          onChange={(e) => setTriggerWindowMinutes(e.target.value)}
+                          className="w-full px-3.5 py-2.5 pr-20 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                        />
+                        <span className="absolute right-3 text-xs text-slate-400 font-medium pointer-events-none">
+                          minutes
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-snug pl-6">
-                        Extends if any carrier submits a new valid bid during the trigger window.
-                      </p>
                     </div>
 
-                    {/* Card B */}
-                    <div
-                      onClick={() => setExtensionTriggerType("ANY_RANK_CHANGE")}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        extensionTriggerType === "ANY_RANK_CHANGE"
-                          ? "border-2 border-blue-600 bg-blue-50/30 shadow-sm"
-                          : "border border-slate-200 bg-white hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 font-bold text-xs text-slate-900 mb-1">
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            extensionTriggerType === "ANY_RANK_CHANGE"
-                              ? "border-blue-600 bg-white"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {extensionTriggerType === "ANY_RANK_CHANGE" && (
-                            <div className="w-2 h-2 rounded-full bg-blue-600" />
-                          )}
-                        </div>
-                        <span>Any Rank Change</span>
+                    {/* Extension duration */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        <span>Extension duration (per bid)</span>
+                        <HelpCircle className="w-3.5 h-3.5 text-slate-400 inline ml-1" />
+                      </label>
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          step="0.1"
+                          required
+                          min="0.1"
+                          value={extensionDurationMinutes}
+                          onChange={(e) => setExtensionDurationMinutes(e.target.value)}
+                          className="w-full px-3.5 py-2.5 pr-20 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                        />
+                        <span className="absolute right-3 text-xs text-slate-400 font-medium pointer-events-none">
+                          minutes
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-snug pl-6">
-                        Extends only if supplier positions change (e.g., L3 jumps to L2).
-                      </p>
                     </div>
+                  </div>
 
-                    {/* Card C */}
-                    <div
-                      onClick={() => setExtensionTriggerType("L1_RANK_CHANGE")}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        extensionTriggerType === "L1_RANK_CHANGE"
-                          ? "border-2 border-blue-600 bg-blue-50/30 shadow-sm"
-                          : "border border-slate-200 bg-white hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2 font-bold text-xs text-slate-900 mb-1">
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            extensionTriggerType === "L1_RANK_CHANGE"
-                              ? "border-blue-600 bg-white"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {extensionTriggerType === "L1_RANK_CHANGE" && (
-                            <div className="w-2 h-2 rounded-full bg-blue-600" />
-                          )}
+                  {/* 3 Selectable Trigger Cards matching Screenshot */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-3">
+                      Select trigger condition for auction extension. (Choose one)
+                    </label>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                      {/* Card 1: Any bid in last X seconds */}
+                      <div
+                        onClick={() => setExtensionTriggerType("BID_RECEIVED")}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                          extensionTriggerType === "BID_RECEIVED"
+                            ? "border-2 border-blue-600 bg-blue-50/20 shadow-xs"
+                            : "border border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <Users className="w-4 h-4 text-blue-600 shrink-0" />
+                              <span className="font-bold text-xs text-slate-900">
+                                Any bid in last X seconds
+                              </span>
+                            </div>
+                            {extensionTriggerType === "BID_RECEIVED" ? (
+                              <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-600 text-white shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            If any bid is placed in the last X seconds of the trigger window, extend
+                            the auction.
+                          </p>
                         </div>
-                        <span>Lowest Bidder (L1) Change</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-snug pl-6">
-                        Extends only when a new carrier takes the #1 winning lowest position.
-                      </p>
+
+                      {/* Card 2: Bid price change */}
+                      <div
+                        onClick={() => setExtensionTriggerType("ANY_RANK_CHANGE")}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                          extensionTriggerType === "ANY_RANK_CHANGE"
+                            ? "border-2 border-blue-600 bg-blue-50/20 shadow-xs"
+                            : "border border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <BarChart2 className="w-4 h-4 text-blue-600 shrink-0" />
+                              <span className="font-bold text-xs text-slate-900">
+                                Bid price change
+                              </span>
+                            </div>
+                            {extensionTriggerType === "ANY_RANK_CHANGE" ? (
+                              <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-600 text-white shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            If the leading bid price changes within the trigger window, extend the
+                            auction.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Card 3: Lowest bidder is in change */}
+                      <div
+                        onClick={() => setExtensionTriggerType("L1_RANK_CHANGE")}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                          extensionTriggerType === "L1_RANK_CHANGE"
+                            ? "border-2 border-blue-600 bg-blue-50/20 shadow-xs"
+                            : "border border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <Award className="w-4 h-4 text-blue-600 shrink-0" />
+                              <span className="font-bold text-xs text-slate-900">
+                                Lowest bidder is in change
+                              </span>
+                            </div>
+                            {extensionTriggerType === "L1_RANK_CHANGE" ? (
+                              <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-600 text-white shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-snug">
+                            If the current lowest bidder changes within the trigger window, extend
+                            the auction.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Auction summary (Sticky Sidebar) matching Screenshot */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs sticky top-20 space-y-6">
+              {/* Summary Header */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                    Auction summary
+                  </h3>
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <span>British auction enabled</span>
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Review your auction details before launching. You can make changes anytime before the auction starts.
+                </p>
               </div>
-            )}
-          </div>
 
-          {/* Bottom Action Bar matching Screenshot 2 */}
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-end space-x-4">
-            <Link
-              href="/"
-              className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              Cancel
-            </Link>
+              {/* Section 1: RFQ details */}
+              <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-900">
+                  <FileText className="w-3.5 h-3.5 text-slate-500" />
+                  <span>RFQ details</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Reference ID</span>
+                    <span className="font-mono font-semibold text-slate-800">
+                      {referenceId || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Route</span>
+                    <span className="font-medium text-slate-800 max-w-[200px] text-right truncate">
+                      {title || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pickup / Service Date</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDisplayDate(pickupDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50 inline-flex items-center space-x-2"
-            >
-              <Rocket className="w-4 h-4 fill-white" />
-              <span>{loading ? "Creating British RFQ..." : "Create RFQ & Launch Auction"}</span>
-            </button>
+              {/* Section 2: Auction schedule */}
+              <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-900">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Auction schedule</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Bid opens</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDisplayDateTime(bidStartTime)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Bid closes</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDisplayDateTime(bidCloseTime)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Forced close</span>
+                    <span className="font-medium text-slate-800">
+                      {formatDisplayDateTime(forcedBidCloseTime)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hard ceiling enforced Callout Box matching Screenshot */}
+              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-start space-x-2.5">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5 fill-blue-600 text-white" />
+                <div>
+                  <h4 className="text-xs font-bold text-blue-900">Hard ceiling enforced</h4>
+                  <p className="text-[11px] text-blue-700/90 mt-0.5 leading-snug">
+                    The auction will automatically close at the forced close time, even if bids are still coming in.
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 3: British auction rules */}
+              <div className="pt-4 border-t border-slate-100 space-y-2.5">
+                <div className="flex items-center space-x-2 text-xs font-bold text-slate-900">
+                  <Settings className="w-3.5 h-3.5 text-slate-500" />
+                  <span>British auction rules</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Trigger window</span>
+                    <span className="font-medium text-slate-800">
+                      {triggerWindowMinutes} minutes
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Extension duration</span>
+                    <span className="font-medium text-slate-800">
+                      {extensionDurationMinutes} minutes
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Trigger condition</span>
+                    <span className="font-medium text-slate-800 text-right">
+                      {getTriggerLabel(extensionTriggerType)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Action Buttons matching Screenshot */}
+              <div className="pt-4 border-t border-slate-100 flex items-center space-x-3">
+                <Link
+                  href="/"
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </Link>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 inline-flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{loading ? "Creating..." : "Create RFQ & launch auction"}</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
