@@ -64,16 +64,16 @@ export default function CreateRFQPage() {
     }
   };
 
-  const [referenceId, setReferenceId] = useState("RFQ-2025-0174");
-  const [title, setTitle] = useState("New Delhi → Mumbai (NH48)");
-  const [pickupDate, setPickupDate] = useState("2025-05-12");
-  const [bidStartTime, setBidStartTime] = useState("2025-05-12T10:00");
-  const [bidCloseTime, setBidCloseTime] = useState("2025-05-12T16:00");
-  const [forcedBidCloseTime, setForcedBidCloseTime] = useState("2025-05-12T18:00");
+  const [referenceId, setReferenceId] = useState("");
+  const [title, setTitle] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [bidStartTime, setBidStartTime] = useState("");
+  const [bidCloseTime, setBidCloseTime] = useState("");
+  const [forcedBidCloseTime, setForcedBidCloseTime] = useState("");
 
   const [isBritishAuction, setIsBritishAuction] = useState(true);
-  const [triggerWindowMinutes, setTriggerWindowMinutes] = useState("3");
-  const [extensionDurationMinutes, setExtensionDurationMinutes] = useState("2");
+  const [triggerWindowMinutes, setTriggerWindowMinutes] = useState("");
+  const [extensionDurationMinutes, setExtensionDurationMinutes] = useState("");
   const [extensionTriggerType, setExtensionTriggerType] = useState<
     "BID_RECEIVED" | "ANY_RANK_CHANGE" | "L1_RANK_CHANGE"
   >("BID_RECEIVED");
@@ -81,21 +81,12 @@ export default function CreateRFQPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize client-side current timestamps on mount
-  useEffect(() => {
-    const t = new Date();
-    setReferenceId(`RFQ-${Math.floor(1000 + Math.random() * 9000)}-0174`);
-    setPickupDate(new Date(t.getTime() + 14 * 24 * 3600 * 1000).toISOString().split("T")[0]);
-    setBidStartTime(formatDatetimeLocal(new Date(t.getTime() - 5 * 60 * 1000)));
-    setBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 65 * 60 * 1000)));
-    setForcedBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 125 * 60 * 1000)));
-  }, []);
-
-  // Quick Demo Preset Generator
+  // Quick Demo Preset Generator (optional for quick testing)
   const loadDemoPreset = () => {
     const t = new Date();
     setReferenceId(`DEMO-${Math.floor(100 + Math.random() * 900)}-LIVE`);
     setTitle("⚡ 2-Minute Live Demo: Singapore to Jakarta Reefer Cargo");
+    setPickupDate(new Date(t.getTime() + 14 * 24 * 3600 * 1000).toISOString().split("T")[0]);
     setBidStartTime(formatDatetimeLocal(new Date(t.getTime() - 60 * 1000))); // Started 1 min ago
     setBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 90 * 1000))); // 90 seconds from now
     setForcedBidCloseTime(formatDatetimeLocal(new Date(t.getTime() + 240 * 1000))); // 4 mins hard stop
@@ -110,6 +101,31 @@ export default function CreateRFQPage() {
     e.preventDefault();
     setError(null);
 
+    if (!referenceId.trim()) {
+      setError("Please provide an RFQ Reference ID.");
+      return;
+    }
+    if (!title.trim()) {
+      setError("Please provide an RFQ Title / Route description.");
+      return;
+    }
+    if (!pickupDate) {
+      setError("Please select a Pickup / Service Date.");
+      return;
+    }
+    if (!bidStartTime) {
+      setError("Please provide a Bid Start Date & Time.");
+      return;
+    }
+    if (!bidCloseTime) {
+      setError("Please provide a Bid Close Date & Time.");
+      return;
+    }
+    if (!forcedBidCloseTime) {
+      setError("Please provide a Forced Close Date & Time.");
+      return;
+    }
+
     const startDate = new Date(bidStartTime);
     const closeDate = new Date(bidCloseTime);
     const forcedDate = new Date(forcedBidCloseTime);
@@ -123,9 +139,13 @@ export default function CreateRFQPage() {
       setError("Validation Error: Forced Bid Close Time must be greater than or equal to Bid Close Time.");
       return;
     }
-    if (parseFloat(triggerWindowMinutes) <= 0 || parseFloat(extensionDurationMinutes) <= 0) {
-      setError("Validation Error: Trigger Window and Extension Duration must be positive numbers.");
-      return;
+    if (isBritishAuction) {
+      const tw = parseFloat(triggerWindowMinutes);
+      const ed = parseFloat(extensionDurationMinutes);
+      if (isNaN(tw) || tw <= 0 || isNaN(ed) || ed <= 0) {
+        setError("Validation Error: Trigger Window and Extension Duration must be positive numbers.");
+        return;
+      }
     }
 
     setLoading(true);
@@ -388,6 +408,7 @@ export default function CreateRFQPage() {
                           step="0.1"
                           required
                           min="0.1"
+                          placeholder="e.g., 3"
                           value={triggerWindowMinutes}
                           onChange={(e) => setTriggerWindowMinutes(e.target.value)}
                           className="w-full px-3.5 py-2.5 pr-20 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
@@ -410,6 +431,7 @@ export default function CreateRFQPage() {
                           step="0.1"
                           required
                           min="0.1"
+                          placeholder="e.g., 2"
                           value={extensionDurationMinutes}
                           onChange={(e) => setExtensionDurationMinutes(e.target.value)}
                           className="w-full px-3.5 py-2.5 pr-20 rounded-lg bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
@@ -553,19 +575,19 @@ export default function CreateRFQPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Reference ID</span>
                     <span className="font-mono font-semibold text-slate-800">
-                      {referenceId || "-"}
+                      {referenceId ? referenceId : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Route</span>
                     <span className="font-medium text-slate-800 max-w-[200px] text-right truncate">
-                      {title || "-"}
+                      {title ? title : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Pickup / Service Date</span>
                     <span className="font-medium text-slate-800">
-                      {formatDisplayDate(pickupDate)}
+                      {pickupDate ? formatDisplayDate(pickupDate) : "—"}
                     </span>
                   </div>
                 </div>
@@ -581,19 +603,19 @@ export default function CreateRFQPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Bid opens</span>
                     <span className="font-medium text-slate-800">
-                      {formatDisplayDateTime(bidStartTime)}
+                      {bidStartTime ? formatDisplayDateTime(bidStartTime) : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Bid closes</span>
                     <span className="font-medium text-slate-800">
-                      {formatDisplayDateTime(bidCloseTime)}
+                      {bidCloseTime ? formatDisplayDateTime(bidCloseTime) : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Forced close</span>
                     <span className="font-medium text-slate-800">
-                      {formatDisplayDateTime(forcedBidCloseTime)}
+                      {forcedBidCloseTime ? formatDisplayDateTime(forcedBidCloseTime) : "—"}
                     </span>
                   </div>
                 </div>
@@ -620,19 +642,19 @@ export default function CreateRFQPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Trigger window</span>
                     <span className="font-medium text-slate-800">
-                      {triggerWindowMinutes} minutes
+                      {triggerWindowMinutes ? `${triggerWindowMinutes} minutes` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Extension duration</span>
                     <span className="font-medium text-slate-800">
-                      {extensionDurationMinutes} minutes
+                      {extensionDurationMinutes ? `${extensionDurationMinutes} minutes` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Trigger condition</span>
                     <span className="font-medium text-slate-800 text-right">
-                      {getTriggerLabel(extensionTriggerType)}
+                      {isBritishAuction ? getTriggerLabel(extensionTriggerType) : "—"}
                     </span>
                   </div>
                 </div>
