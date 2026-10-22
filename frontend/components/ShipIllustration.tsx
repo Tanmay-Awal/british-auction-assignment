@@ -2,7 +2,7 @@
 
 export default function ShipIllustration() {
   return (
-    <div className="w-[360px] h-[190px] relative shrink-0 select-none pointer-events-none hidden lg:block">
+    <div className="w-[460px] lg:w-[500px] xl:w-[560px] 2xl:w-[620px] h-[230px] lg:h-[250px] xl:h-[280px] 2xl:h-[310px] relative shrink-0 select-none pointer-events-none hidden lg:block -my-3">
       <svg
         viewBox="0 0 380 200"
         fill="none"
@@ -118,10 +118,10 @@ export default function ShipIllustration() {
 
         {/* Water Surface Lines & Ripples */}
         <g stroke="#bdd8fc" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="40" y1="162" x2="265" y2="162" />
-          <line x1="20" y1="168" x2="190" y2="168" stroke="#d5e8ff" strokeWidth="2" />
-          <line x1="120" y1="174" x2="240" y2="174" stroke="#e0edff" strokeWidth="2" />
-          <line x1="60" y1="175" x2="105" y2="175" stroke="#e5f1ff" strokeWidth="1.8" />
+          <line x1="25" y1="162" x2="275" y2="162" />
+          <line x1="10" y1="168" x2="210" y2="168" stroke="#d5e8ff" strokeWidth="2" />
+          <line x1="80" y1="174" x2="240" y2="174" stroke="#e0edff" strokeWidth="2" />
+          <line x1="30" y1="175" x2="110" y2="175" stroke="#e5f1ff" strokeWidth="1.8" />
         </g>
       </svg>
     </div>
