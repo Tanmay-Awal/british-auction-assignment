@@ -395,7 +395,7 @@ export default function CreateRFQPage() {
                           )}
                         </div>
                         <span className="flex items-center space-x-1">
-                          <span>a) Any Bid Received</span>
+                          <span>Any Bid Received</span>
                           <HelpCircle className="w-3 h-3 text-slate-400" />
                         </span>
                       </div>
@@ -425,7 +425,7 @@ export default function CreateRFQPage() {
                             <div className="w-2 h-2 rounded-full bg-blue-600" />
                           )}
                         </div>
-                        <span>b) Any Rank Change</span>
+                        <span>Any Rank Change</span>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-6">
                         Extends only if supplier positions change (e.g., L3 jumps to L2).
@@ -453,7 +453,7 @@ export default function CreateRFQPage() {
                             <div className="w-2 h-2 rounded-full bg-blue-600" />
                           )}
                         </div>
-                        <span>c) Lowest Bidder (L1) Change</span>
+                        <span>Lowest Bidder (L1) Change</span>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-snug pl-6">
                         Extends only when a new carrier takes the #1 winning lowest position.
