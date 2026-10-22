@@ -125,7 +125,7 @@ export default function CreateRFQPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Top Header Bar with Back Link and Preset Button matching Screenshot 2 */}
       <div className="flex items-center justify-between">
         <Link
