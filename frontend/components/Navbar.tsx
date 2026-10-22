@@ -2,22 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { PlusCircle, LayoutGrid, Code2, Anchor, User } from "lucide-react";
+import { PlusCircle, LayoutGrid, Anchor, User } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [apiOnline, setApiOnline] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    fetch("http://localhost:8000/health")
-      .then((res) => {
-        if (res.ok) setApiOnline(true);
-        else setApiOnline(false);
-      })
-      .catch(() => setApiOnline(false));
-  }, []);
-
   const isDashboard = pathname === "/" || pathname.startsWith("/rfqs/");
 
   return (
@@ -36,8 +24,8 @@ export default function Navbar() {
           </span>
         </div>
 
-        {/* Navigation & Action Items matching screenshot */}
-        <div className="flex items-center space-x-6">
+        {/* Navigation & Action Items */}
+        <div className="flex items-center space-x-5">
           <Link
             href="/"
             className={`flex items-center space-x-1.5 text-sm font-semibold transition-colors relative py-5 ${
@@ -59,28 +47,7 @@ export default function Navbar() {
             <span>Create British RFQ</span>
           </Link>
 
-          <a
-            href="http://localhost:8000/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:flex items-center space-x-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <Code2 className="w-4 h-4 text-slate-500" />
-            <span>Swagger Docs</span>
-          </a>
-
-          <div className="flex items-center space-x-1.5 text-xs font-semibold">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                apiOnline === true ? "bg-emerald-500" : apiOnline === false ? "bg-rose-500" : "bg-amber-400"
-              }`}
-            />
-            <span className="text-slate-700 text-xs">
-              {apiOnline === true ? "FastAPI Online" : apiOnline === false ? "Offline" : "Connecting..."}
-            </span>
-          </div>
-
-          {/* User Avatar Circle from Screenshot */}
+          {/* User Avatar Circle */}
           <div className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:border-slate-400 cursor-pointer transition-colors bg-slate-50">
             <User className="w-4 h-4" />
           </div>
