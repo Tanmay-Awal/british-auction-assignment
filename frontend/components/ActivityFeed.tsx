@@ -5,10 +5,9 @@ import { Zap, Send, ShieldAlert, Sparkles, Clock } from "lucide-react";
 
 interface ActivityFeedProps {
   logs: ActivityLogItem[];
-  compact?: boolean;
 }
 
-export default function ActivityFeed({ logs, compact = false }: ActivityFeedProps) {
+export default function ActivityFeed({ logs }: ActivityFeedProps) {
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
       case "AUCTION_EXTENDED":

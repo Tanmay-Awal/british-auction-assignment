@@ -5,10 +5,10 @@ import { Trophy, Medal, Award, Calendar, Timer, Ship } from "lucide-react";
 
 interface LeaderboardTableProps {
   bids: BidItem[];
-  auctionStatus: string;
+  auctionStatus?: string;
 }
 
-export default function LeaderboardTable({ bids, auctionStatus }: LeaderboardTableProps) {
+export default function LeaderboardTable({ bids }: LeaderboardTableProps) {
   const getRankBadge = (rank?: number) => {
     if (rank === 1) {
       return (

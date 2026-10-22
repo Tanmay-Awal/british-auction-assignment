@@ -28,8 +28,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-full ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-full bg-[#f8fafc] text-slate-900 antialiased flex flex-col font-sans">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`h-full ${inter.variable} ${jetbrainsMono.variable}`}
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 antialiased flex flex-col font-sans transition-colors duration-150">
         <Navbar />
         {/* Full-width container with generous max-width to remove unnecessary side margins */}
         <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-10 py-6">

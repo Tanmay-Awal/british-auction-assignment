@@ -16,7 +16,7 @@ export default function BidSubmissionModal({ rfqId, auctionStatus, onBidSubmitte
   const [originCharges, setOriginCharges] = useState("200.00");
   const [destinationCharges, setDestinationCharges] = useState("250.00");
   const [transitTimeDays, setTransitTimeDays] = useState("18");
-  const [quoteValidity, setQuoteValidity] = useState(
+  const [quoteValidity, setQuoteValidity] = useState(() =>
     new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split("T")[0]
   );
 
@@ -56,8 +56,8 @@ export default function BidSubmissionModal({ rfqId, auctionStatus, onBidSubmitte
 
       setLastResult(result);
       onBidSubmitted();
-    } catch (err: any) {
-      setError(err.message || "Failed to submit quote");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to submit quote");
     } finally {
       setLoading(false);
     }

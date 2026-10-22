@@ -42,7 +42,14 @@ export interface BidItem {
 export interface ActivityLogItem {
   id: string;
   rfq_id: string;
-  event_type: "RFQ_CREATED" | "BID_SUBMITTED" | "AUCTION_EXTENDED" | "AUCTION_CLOSED" | "AUCTION_FORCE_CLOSED";
+  event_type:
+    | "RFQ_CREATED"
+    | "BID_SUBMITTED"
+    | "AUCTION_EXTENDED"
+    | "AUCTION_CLOSED"
+    | "AUCTION_FORCE_CLOSED"
+    | "AUCTION_STARTED"
+    | string;
   description: string;
   extension_minutes?: number | null;
   previous_close_time?: string | null;

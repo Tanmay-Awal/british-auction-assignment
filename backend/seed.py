@@ -21,7 +21,7 @@ async def seed_data():
 
     async with AsyncSessionLocal() as db:
         # -------------------------------------------------------------
-        # 1. RFQ-1: Active in Trigger Window (Trigger: BID_RECEIVED)
+        # 1. RFQ-1: ACTIVE (Trigger: BID_RECEIVED)
         # -------------------------------------------------------------
         rfq1_id = uuid4()
         rfq1 = RFQ(
@@ -30,11 +30,11 @@ async def seed_data():
             title="Mumbai JNPT to Rotterdam 40ft High Cube Container",
             pickup_date=now + timedelta(days=14),
             bid_start_time=now - timedelta(hours=2),
-            bid_close_time=now + timedelta(minutes=4),  # 4 minutes remaining
-            original_bid_close_time=now + timedelta(minutes=4),
-            forced_bid_close_time=now + timedelta(minutes=20),  # Hard stop
+            bid_close_time=now + timedelta(minutes=45),  # 45 mins active bidding time
+            original_bid_close_time=now + timedelta(minutes=45),
+            forced_bid_close_time=now + timedelta(minutes=120),  # Hard stop ceiling
             is_british_auction=True,
-            trigger_window_minutes=Decimal("10.0"),  # Active trigger window right now!
+            trigger_window_minutes=Decimal("15.0"),
             extension_duration_minutes=Decimal("3.0"),
             extension_trigger_type=ExtensionTriggerType.BID_RECEIVED.value,
             status=AuctionStatus.ACTIVE.value,
@@ -87,7 +87,7 @@ async def seed_data():
         db.add(RFQActivityLog(
             rfq_id=rfq1_id,
             event_type=ActivityEventType.RFQ_CREATED.value,
-            description="RFQ created for Mumbai to Rotterdam route. British Auction activated with 10m window.",
+            description="RFQ created for Mumbai to Rotterdam route. British Auction activated with 15m window.",
             actor="System",
             created_at=now - timedelta(hours=2),
         ))
@@ -100,7 +100,7 @@ async def seed_data():
         ))
 
         # -------------------------------------------------------------
-        # 2. RFQ-2: L1 Rank Change Trigger (Trigger: L1_RANK_CHANGE)
+        # 2. RFQ-2: ACTIVE in Trigger Window (Trigger: L1_RANK_CHANGE)
         # -------------------------------------------------------------
         rfq2_id = uuid4()
         rfq2 = RFQ(
@@ -109,8 +109,8 @@ async def seed_data():
             title="Shanghai to Los Angeles Transpacific 50x40ft FCL",
             pickup_date=now + timedelta(days=21),
             bid_start_time=now - timedelta(hours=3),
-            bid_close_time=now + timedelta(minutes=8),
-            original_bid_close_time=now + timedelta(minutes=8),
+            bid_close_time=now + timedelta(minutes=7),  # Within 10m trigger window
+            original_bid_close_time=now + timedelta(minutes=7),
             forced_bid_close_time=now + timedelta(minutes=30),
             is_british_auction=True,
             trigger_window_minutes=Decimal("10.0"),
@@ -151,54 +151,106 @@ async def seed_data():
         for b in rfq2_bids:
             db.add(b)
 
+        db.add(RFQActivityLog(
+            rfq_id=rfq2_id,
+            event_type=ActivityEventType.RFQ_CREATED.value,
+            description="RFQ created for Shanghai to Los Angeles transpacific route.",
+            actor="System",
+            created_at=now - timedelta(hours=3),
+        ))
+
         # -------------------------------------------------------------
-        # 3. RFQ-3: Fast 2-Minute Demo for Live Testing
+        # 3. RFQ-3: CLOSED (Standard close time reached, not forced)
         # -------------------------------------------------------------
         rfq3_id = uuid4()
         rfq3 = RFQ(
             id=rfq3_id,
-            reference_id="DEMO-FAST-AUCTION",
-            title="⚡ 2-Minute Live Demo: Singapore to Jakarta Reefer Cargo",
-            pickup_date=now + timedelta(days=7),
-            bid_start_time=now - timedelta(minutes=1),
-            bid_close_time=now + timedelta(minutes=1, seconds=30),  # 90 seconds left!
-            original_bid_close_time=now + timedelta(minutes=1, seconds=30),
-            forced_bid_close_time=now + timedelta(minutes=4),  # Hard stop at 4 minutes
+            reference_id="RFQ-SIN-HAM-003",
+            title="Singapore to Hamburg 20x40ft Standard Dry Container",
+            pickup_date=now + timedelta(days=10),
+            bid_start_time=now - timedelta(hours=6),
+            bid_close_time=now - timedelta(hours=1),  # Closed 1 hour ago
+            original_bid_close_time=now - timedelta(hours=1),
+            forced_bid_close_time=now + timedelta(hours=2),  # Ceiling was NOT reached
             is_british_auction=True,
-            trigger_window_minutes=Decimal("1.5"),  # 90 seconds trigger window (currently active!)
-            extension_duration_minutes=Decimal("1.0"),  # 60s extension
-            extension_trigger_type=ExtensionTriggerType.BID_RECEIVED.value,
-            status=AuctionStatus.ACTIVE.value,
-            created_at=now - timedelta(minutes=1),
-            updated_at=now,
+            trigger_window_minutes=Decimal("10.0"),
+            extension_duration_minutes=Decimal("3.0"),
+            extension_trigger_type=ExtensionTriggerType.ANY_RANK_CHANGE.value,
+            status=AuctionStatus.CLOSED.value,
+            created_at=now - timedelta(hours=6),
+            updated_at=now - timedelta(hours=1),
         )
         db.add(rfq3)
-        db.add(Bid(
+
+        rfq3_bids = [
+            Bid(
+                rfq_id=rfq3_id,
+                carrier_name="Evergreen Marine",
+                freight_charges=Decimal("1550.00"),
+                origin_charges=Decimal("230.00"),
+                destination_charges=Decimal("300.00"),
+                total_amount=Decimal("2080.00"),
+                transit_time_days=22,
+                quote_validity=(now + timedelta(days=20)).date(),
+                rank_at_submission=1,
+                created_at=now - timedelta(hours=2),
+            ),
+            Bid(
+                rfq_id=rfq3_id,
+                carrier_name="Yang Ming Marine",
+                freight_charges=Decimal("1650.00"),
+                origin_charges=Decimal("250.00"),
+                destination_charges=Decimal("320.00"),
+                total_amount=Decimal("2220.00"),
+                transit_time_days=24,
+                quote_validity=(now + timedelta(days=20)).date(),
+                rank_at_submission=2,
+                created_at=now - timedelta(hours=3),
+            ),
+            Bid(
+                rfq_id=rfq3_id,
+                carrier_name="CMA CGM",
+                freight_charges=Decimal("1750.00"),
+                origin_charges=Decimal("260.00"),
+                destination_charges=Decimal("340.00"),
+                total_amount=Decimal("2350.00"),
+                transit_time_days=23,
+                quote_validity=(now + timedelta(days=20)).date(),
+                rank_at_submission=3,
+                created_at=now - timedelta(hours=4),
+            ),
+        ]
+        for b in rfq3_bids:
+            db.add(b)
+
+        db.add(RFQActivityLog(
             rfq_id=rfq3_id,
-            carrier_name="PIL (Pacific International Lines)",
-            freight_charges=Decimal("700.00"),
-            origin_charges=Decimal("100.00"),
-            destination_charges=Decimal("150.00"),
-            total_amount=Decimal("950.00"),
-            transit_time_days=4,
-            quote_validity=(now + timedelta(days=15)).date(),
-            rank_at_submission=1,
-            created_at=now - timedelta(seconds=40),
+            event_type=ActivityEventType.RFQ_CREATED.value,
+            description="RFQ created for Singapore to Hamburg route.",
+            actor="System",
+            created_at=now - timedelta(hours=6),
+        ))
+        db.add(RFQActivityLog(
+            rfq_id=rfq3_id,
+            event_type=ActivityEventType.AUCTION_CLOSED.value,
+            description="Auction ended normally at regular close time. Winning carrier: Evergreen Marine ($2,080.00).",
+            actor="System",
+            created_at=now - timedelta(hours=1),
         ))
 
         # -------------------------------------------------------------
-        # 4. RFQ-4: Force Closed (Hard ceiling reached)
+        # 4. RFQ-4: FORCE_CLOSED (Hard ceiling reached)
         # -------------------------------------------------------------
         rfq4_id = uuid4()
         rfq4 = RFQ(
             id=rfq4_id,
-            reference_id="ARCHIVE-FORCED-004",
-            title="Dubai to Frankfurt Air Freight Consignment",
+            reference_id="RFQ-DXB-FRA-004",
+            title="Dubai to Frankfurt Priority Air Freight Consignment",
             pickup_date=now - timedelta(days=1),
             bid_start_time=now - timedelta(hours=8),
             bid_close_time=now - timedelta(hours=2),
             original_bid_close_time=now - timedelta(hours=4),
-            forced_bid_close_time=now - timedelta(hours=2),  # Clamped and ended
+            forced_bid_close_time=now - timedelta(hours=2),  # Clamped and terminated
             is_british_auction=True,
             trigger_window_minutes=Decimal("10.0"),
             extension_duration_minutes=Decimal("5.0"),
@@ -208,18 +260,36 @@ async def seed_data():
             updated_at=now - timedelta(hours=2),
         )
         db.add(rfq4)
-        db.add(Bid(
-            rfq_id=rfq4_id,
-            carrier_name="Emirates SkyCargo",
-            freight_charges=Decimal("3800.00"),
-            origin_charges=Decimal("400.00"),
-            destination_charges=Decimal("450.00"),
-            total_amount=Decimal("4650.00"),
-            transit_time_days=2,
-            quote_validity=(now + timedelta(days=10)).date(),
-            rank_at_submission=1,
-            created_at=now - timedelta(hours=2, minutes=5),
-        ))
+
+        rfq4_bids = [
+            Bid(
+                rfq_id=rfq4_id,
+                carrier_name="Emirates SkyCargo",
+                freight_charges=Decimal("3800.00"),
+                origin_charges=Decimal("400.00"),
+                destination_charges=Decimal("450.00"),
+                total_amount=Decimal("4650.00"),
+                transit_time_days=2,
+                quote_validity=(now + timedelta(days=10)).date(),
+                rank_at_submission=1,
+                created_at=now - timedelta(hours=2, minutes=5),
+            ),
+            Bid(
+                rfq_id=rfq4_id,
+                carrier_name="Lufthansa Cargo",
+                freight_charges=Decimal("4000.00"),
+                origin_charges=Decimal("420.00"),
+                destination_charges=Decimal("470.00"),
+                total_amount=Decimal("4890.00"),
+                transit_time_days=2,
+                quote_validity=(now + timedelta(days=10)).date(),
+                rank_at_submission=2,
+                created_at=now - timedelta(hours=2, minutes=20),
+            ),
+        ]
+        for b in rfq4_bids:
+            db.add(b)
+
         db.add(RFQActivityLog(
             rfq_id=rfq4_id,
             event_type=ActivityEventType.AUCTION_FORCE_CLOSED.value,
@@ -229,7 +299,7 @@ async def seed_data():
         ))
 
         await db.commit()
-        print("[SUCCESS] Successfully seeded 4 realistic RFQs with live bids, logs, and countdown states!")
+        print("[SUCCESS] Successfully seeded 4 realistic RFQs with live bids, logs, and all statuses (ACTIVE, CLOSED, FORCE_CLOSED)!")
 
 
 if __name__ == "__main__":
