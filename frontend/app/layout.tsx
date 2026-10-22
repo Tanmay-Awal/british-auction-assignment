@@ -31,7 +31,8 @@ export default function RootLayout({
     <html lang="en" className={`h-full ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full bg-[#f8fafc] text-slate-900 antialiased flex flex-col font-sans">
         <Navbar />
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Full-width container with generous max-width to remove unnecessary side margins */}
+        <main className="flex-1 w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
           {children}
         </main>
       </body>
