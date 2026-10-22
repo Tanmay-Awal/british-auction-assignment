@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PlusCircle, LayoutGrid, Code2, Anchor } from "lucide-react";
+import { PlusCircle, LayoutGrid, Code2, Anchor, User } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -36,7 +36,7 @@ export default function Navbar() {
           </span>
         </div>
 
-        {/* Navigation & Action Items */}
+        {/* Navigation & Action Items matching screenshot */}
         <div className="flex items-center space-x-6">
           <Link
             href="/"
@@ -78,6 +78,11 @@ export default function Navbar() {
             <span className="text-slate-700 text-xs">
               {apiOnline === true ? "FastAPI Online" : apiOnline === false ? "Offline" : "Connecting..."}
             </span>
+          </div>
+
+          {/* User Avatar Circle from Screenshot */}
+          <div className="w-8 h-8 rounded-full border border-slate-300 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:border-slate-400 cursor-pointer transition-colors bg-slate-50">
+            <User className="w-4 h-4" />
           </div>
         </div>
       </div>

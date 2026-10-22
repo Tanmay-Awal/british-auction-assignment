@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getRFQs, RFQItem } from "@/lib/api";
 import CountdownTimer from "@/components/CountdownTimer";
+import ShipIllustration from "@/components/ShipIllustration";
 import {
   PlusCircle,
   RefreshCw,
@@ -93,18 +94,18 @@ export default function AuctionListingPage() {
     }
   };
 
-  const formatHoursOrMins = (minutesVal: number) => {
-    const mins = Number(minutesVal);
-    if (mins >= 60) {
-      return `${(mins / 60).toFixed(2)}hr`;
+  const formatWindow = (minutesVal: number) => {
+    const val = Number(minutesVal);
+    if (val <= 2) {
+      return `${val.toFixed(2)}m`;
     }
-    return `${mins.toFixed(2)}m`;
+    return `${val.toFixed(2)}hr`;
   };
 
   return (
     <div className="space-y-6">
-      {/* Hero Banner with exact SVG Container Ship / Crane illustration */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50/60 via-white to-blue-50/40 border border-slate-200/90 p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* Hero Banner matching Screenshot 1 exactly with ShipIllustration */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-50/60 via-white to-blue-50/40 border border-slate-200/90 p-8 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-6">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-xs font-semibold mb-3">
             <Zap className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
@@ -138,45 +139,8 @@ export default function AuctionListingPage() {
           </div>
         </div>
 
-        {/* Cargo Ship & Crane Line Illustration matching Screenshot 1 */}
-        <div className="shrink-0 w-72 h-44 hidden md:flex items-center justify-center opacity-85 select-none pointer-events-none">
-          <svg viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-            {/* Background Clouds / Sun */}
-            <circle cx="260" cy="50" r="28" fill="#dbeafe" opacity="0.6" />
-            <path d="M220 70 C220 60, 235 55, 245 60 C250 50, 270 50, 280 60 C290 60, 295 70, 290 75 Z" fill="#eff6ff" />
-            
-            {/* Port Crane */}
-            <path d="M290 160 L290 50 L240 50" stroke="#93c5fd" strokeWidth="3" strokeLinecap="round" />
-            <path d="M290 50 L310 40" stroke="#93c5fd" strokeWidth="3" strokeLinecap="round" />
-            <line x1="265" y1="50" x2="265" y2="80" stroke="#93c5fd" strokeWidth="2" strokeDasharray="3 3" />
-            <rect x="257" y="80" width="16" height="10" rx="1" fill="#3b82f6" />
-            <line x1="290" y1="160" x2="275" y2="160" stroke="#93c5fd" strokeWidth="3" />
-            <line x1="290" y1="160" x2="305" y2="160" stroke="#93c5fd" strokeWidth="3" />
-
-            {/* Container Ship Hull */}
-            <path d="M220 160 L30 160 L45 130 L240 130 C240 130 250 145 235 155 Z" fill="#93c5fd" opacity="0.75" />
-            <path d="M220 160 L25 160" stroke="#60a5fa" strokeWidth="3" strokeLinecap="round" />
-
-            {/* Containers on Ship */}
-            <rect x="60" y="112" width="24" height="18" rx="1" fill="#60a5fa" stroke="#ffffff" strokeWidth="1" />
-            <rect x="84" y="112" width="24" height="18" rx="1" fill="#3b82f6" stroke="#ffffff" strokeWidth="1" />
-            <rect x="108" y="112" width="24" height="18" rx="1" fill="#93c5fd" stroke="#ffffff" strokeWidth="1" />
-            <rect x="132" y="112" width="24" height="18" rx="1" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
-            <rect x="156" y="112" width="24" height="18" rx="1" fill="#60a5fa" stroke="#ffffff" strokeWidth="1" />
-            <rect x="180" y="112" width="24" height="18" rx="1" fill="#3b82f6" stroke="#ffffff" strokeWidth="1" />
-
-            {/* Stacked Containers Tier 2 */}
-            <rect x="72" y="94" width="24" height="18" rx="1" fill="#3b82f6" stroke="#ffffff" strokeWidth="1" />
-            <rect x="96" y="94" width="24" height="18" rx="1" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
-            <rect x="120" y="94" width="24" height="18" rx="1" fill="#60a5fa" stroke="#ffffff" strokeWidth="1" />
-            <rect x="144" y="94" width="24" height="18" rx="1" fill="#93c5fd" stroke="#ffffff" strokeWidth="1" />
-            <rect x="168" y="94" width="24" height="18" rx="1" fill="#3b82f6" stroke="#ffffff" strokeWidth="1" />
-
-            {/* Water Waves */}
-            <path d="M10 165 C30 163, 40 167, 60 165 C80 163, 90 167, 110 165 C130 163, 140 167, 160 165 C180 163, 190 167, 210 165 C230 163, 240 167, 260 165 C280 163, 290 167, 310 165" stroke="#bfdbfe" strokeWidth="2.5" strokeLinecap="round" />
-            <path d="M25 172 C45 170, 55 174, 75 172 C95 170, 105 174, 125 172 C145 170, 155 174, 175 172 C195 170, 205 174, 225 172" stroke="#dbeafe" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </div>
+        {/* Custom Port Crane and Container Ship Illustration */}
+        <ShipIllustration />
       </div>
 
       {/* Filter and Metrics Bar matching Screenshot 1 */}
@@ -210,7 +174,7 @@ export default function AuctionListingPage() {
         </div>
       </div>
 
-      {/* RFQ Listing Grid */}
+      {/* RFQ Listing Grid matching Screenshot 1 */}
       {loading ? (
         <div className="p-16 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
           <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
@@ -259,14 +223,14 @@ export default function AuctionListingPage() {
                   )}
                 </h2>
 
-                {/* British Auction Config Pills */}
+                {/* British Auction Config Pills matching screenshot */}
                 {rfq.is_british_auction && (
                   <div className="flex flex-wrap items-center gap-2 mb-4 text-xs font-medium">
                     <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                      Window: <strong>{formatHoursOrMins(Number(rfq.trigger_window_minutes))}</strong>
+                      Window: <strong>{formatWindow(Number(rfq.trigger_window_minutes))}</strong>
                     </span>
                     <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                      Extend: <strong>+{formatHoursOrMins(Number(rfq.extension_duration_minutes))}</strong>
+                      Extend: <strong>+{formatWindow(Number(rfq.extension_duration_minutes))}</strong>
                     </span>
                     <span className="px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
                       Trigger: {getTriggerLabel(rfq.extension_trigger_type)}
@@ -297,7 +261,7 @@ export default function AuctionListingPage() {
                   </div>
                 </div>
 
-                {/* Countdown & Schedule */}
+                {/* Countdown & Schedule matching screenshot */}
                 <div className="space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-3.5">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center space-x-1.5 font-medium text-slate-500">
@@ -322,7 +286,7 @@ export default function AuctionListingPage() {
                   </div>
 
                   <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-500 font-sans">Forced Close Ceiling:</span>
+                    <span className="text-slate-500 font-sans">Forced Close Calling:</span>
                     <span className="text-slate-900 font-bold">
                       {new Date(rfq.forced_bid_close_time).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true })}
                     </span>
