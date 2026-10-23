@@ -104,8 +104,8 @@ export default function CreateRFQPage() {
       setError("Validation Error: Bid Close Time must be strictly later than Bid Start Time.");
       return;
     }
-    if (forcedDate < closeDate) {
-      setError("Validation Error: Forced Bid Close Time must be greater than or equal to Bid Close Time.");
+    if (forcedDate <= closeDate) {
+      setError("Validation Error: Forced Bid Close Time must be strictly later than Bid Close Time.");
       return;
     }
     if (isBritishAuction) {

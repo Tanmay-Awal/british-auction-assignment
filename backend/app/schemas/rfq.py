@@ -22,8 +22,8 @@ class RFQBase(BaseModel):
     def validate_timestamps(self):
         if self.bid_close_time <= self.bid_start_time:
             raise ValueError("Bid Close Time must be strictly greater than Bid Start Time.")
-        if self.forced_bid_close_time < self.bid_close_time:
-            raise ValueError("Forced Bid Close Time must be greater than or equal to Bid Close Time.")
+        if self.forced_bid_close_time <= self.bid_close_time:
+            raise ValueError("Forced Bid Close Time must be strictly greater than Bid Close Time.")
         return self
 
 
