@@ -154,3 +154,84 @@ async def test_auction_status_evaluation():
     # Future start time -> DRAFT
     rfq.bid_start_time = now + timedelta(hours=1)
     assert evaluate_auction_status(rfq, now) == AuctionStatus.DRAFT.value
+
+
+@pytest.mark.asyncio
+async def test_tie_breaking_deterministic_ranking():
+    """
+    Verify that when two carriers submit identical quote totals,
+    the earlier submission strictly wins L1, and the later submission ranks L2.
+    Also verifies that under L1_RANK_CHANGE, the later tied bid does NOT trigger an extension.
+    """
+    now = datetime.now(timezone.utc)
+    rfq_id = uuid4()
+
+    async with AsyncSessionLocal() as db:
+        test_rfq = RFQ(
+            id=rfq_id,
+            reference_id=f"TEST-TIE-{uuid4().hex[:6]}",
+            title="Test Tie Breaking Route",
+            pickup_date=now + timedelta(days=10),
+            bid_start_time=now - timedelta(hours=1),
+            bid_close_time=now + timedelta(minutes=5),  # in trigger window
+            original_bid_close_time=now + timedelta(minutes=5),
+            forced_bid_close_time=now + timedelta(minutes=30),
+            is_british_auction=True,
+            trigger_window_minutes=Decimal("10.0"),
+            extension_duration_minutes=Decimal("5.0"),
+            extension_trigger_type=ExtensionTriggerType.L1_RANK_CHANGE.value,
+            status=AuctionStatus.ACTIVE.value,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(test_rfq)
+        await db.commit()
+
+        # Carrier 1 submits $2,000 at now
+        bid1 = BidCreate(
+            carrier_name="Carrier Alpha",
+            freight_charges=Decimal("1800.00"),
+            origin_charges=Decimal("100.00"),
+            destination_charges=Decimal("100.00"),
+            transit_time_days=15,
+            quote_validity=(now + timedelta(days=20)).date(),
+        )
+        res1 = await AuctionEngine.submit_quote(db=db, rfq_id=rfq_id, quote_data=bid1, current_time=now)
+        assert res1.bid.current_rank == 1
+        assert res1.bid.rank_at_submission == 1
+
+        # Carrier 2 submits identical $2,000 at now + 1 minute (later timestamp)
+        bid2 = BidCreate(
+            carrier_name="Carrier Beta",
+            freight_charges=Decimal("1800.00"),
+            origin_charges=Decimal("100.00"),
+            destination_charges=Decimal("100.00"),
+            transit_time_days=15,
+            quote_validity=(now + timedelta(days=20)).date(),
+        )
+        res2 = await AuctionEngine.submit_quote(db=db, rfq_id=rfq_id, quote_data=bid2, current_time=now + timedelta(minutes=1))
+        # Carrier Beta arrived later with identical quote -> Must be Rank 2!
+        assert res2.bid.rank_at_submission == 2
+        # Under L1_RANK_CHANGE, Carrier Beta did NOT dethrone Carrier Alpha -> should NOT extend!
+        assert res2.extended is False
+
+        # Query all ranked bids to confirm deterministic order
+        ranked = await AuctionEngine.get_ranked_bids_for_rfq(db=db, rfq_id=rfq_id)
+        assert len(ranked) == 2
+        assert ranked[0].carrier_name == "Carrier Alpha"
+        assert ranked[0].current_rank == 1
+        assert ranked[1].carrier_name == "Carrier Beta"
+        assert ranked[1].current_rank == 2
+
+
+def test_quote_validity_past_date_rejected():
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+    with pytest.raises(ValueError, match="cannot be in the past"):
+        BidCreate(
+            carrier_name="Expired Carrier",
+            freight_charges=Decimal("1000.00"),
+            origin_charges=Decimal("100.00"),
+            destination_charges=Decimal("100.00"),
+            transit_time_days=10,
+            quote_validity=yesterday,
+        )

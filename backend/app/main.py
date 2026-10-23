@@ -27,10 +27,21 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Enable CORS for Next.js frontend
+# Enable CORS for Next.js frontend with explicit origins
+origins = [
+    settings.FRONTEND_URL.rstrip("/"),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+if settings.CORS_ORIGINS:
+    for o in settings.CORS_ORIGINS.split(","):
+        cleaned = o.strip().rstrip("/")
+        if cleaned and cleaned not in origins:
+            origins.append(cleaned)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local testing/demo
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

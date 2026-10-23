@@ -38,6 +38,7 @@ class Bid(Base):
         CheckConstraint("origin_charges >= 0", name="chk_bid_origin_non_negative"),
         CheckConstraint("destination_charges >= 0", name="chk_bid_dest_non_negative"),
         CheckConstraint("total_amount > 0", name="chk_bid_total_positive"),
+        CheckConstraint("total_amount = freight_charges + origin_charges + destination_charges", name="chk_bid_total_matches_components"),
         CheckConstraint("transit_time_days > 0", name="chk_bid_transit_positive"),
         Index("idx_bids_rfq_total_time", "rfq_id", "total_amount", "created_at"),
     )

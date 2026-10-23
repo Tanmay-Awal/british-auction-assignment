@@ -298,8 +298,38 @@ async def seed_data():
             created_at=now - timedelta(hours=2),
         ))
 
+        # -------------------------------------------------------------
+        # 5. RFQ-5: DRAFT / UPCOMING (Starts in future)
+        # -------------------------------------------------------------
+        rfq5_id = uuid4()
+        rfq5 = RFQ(
+            id=rfq5_id,
+            reference_id="RFQ-TYO-SYD-005",
+            title="Tokyo to Sydney 15x40ft Open Top High Cube",
+            pickup_date=now + timedelta(days=30),
+            bid_start_time=now + timedelta(hours=24),  # Starts in 24 hours
+            bid_close_time=now + timedelta(hours=48),
+            original_bid_close_time=now + timedelta(hours=48),
+            forced_bid_close_time=now + timedelta(hours=72),
+            is_british_auction=True,
+            trigger_window_minutes=Decimal("15.0"),
+            extension_duration_minutes=Decimal("5.0"),
+            extension_trigger_type=ExtensionTriggerType.BID_RECEIVED.value,
+            status=AuctionStatus.DRAFT.value,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(rfq5)
+        db.add(RFQActivityLog(
+            rfq_id=rfq5_id,
+            event_type=ActivityEventType.RFQ_CREATED.value,
+            description="Upcoming auction created for Tokyo to Sydney route. Bidding begins in 24 hours.",
+            actor="System",
+            created_at=now,
+        ))
+
         await db.commit()
-        print("[SUCCESS] Successfully seeded 4 realistic RFQs with live bids, logs, and all statuses (ACTIVE, CLOSED, FORCE_CLOSED)!")
+        print("[SUCCESS] Successfully seeded 5 realistic RFQs with live bids, logs, and all statuses (ACTIVE, CLOSED, FORCE_CLOSED, DRAFT)!")
 
 
 if __name__ == "__main__":

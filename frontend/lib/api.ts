@@ -104,6 +104,30 @@ export async function getRFQDetails(rfqId: string): Promise<RFQItem> {
   return res.json();
 }
 
+function parseErrorMessage(errorData: unknown, defaultMessage: string): string {
+  if (!errorData || typeof errorData !== "object") return defaultMessage;
+  const err = errorData as Record<string, unknown>;
+  if (Array.isArray(err.detail)) {
+    return err.detail
+      .map((d: unknown) => {
+        if (d && typeof d === "object") {
+          const errObj = d as Record<string, unknown>;
+          const loc = Array.isArray(errObj.loc)
+            ? errObj.loc.filter((x) => x !== "body").join(".")
+            : "";
+          const msg = typeof errObj.msg === "string" ? errObj.msg : JSON.stringify(errObj);
+          return loc ? `${loc}: ${msg}` : msg;
+        }
+        return String(d);
+      })
+      .join("; ");
+  }
+  if (typeof err.detail === "string" && err.detail.trim()) {
+    return err.detail;
+  }
+  return defaultMessage;
+}
+
 export async function createRFQ(payload: CreateRFQPayload): Promise<RFQItem> {
   const res = await fetch(`${API_BASE_URL}/api/rfqs`, {
     method: "POST",
@@ -112,7 +136,7 @@ export async function createRFQ(payload: CreateRFQPayload): Promise<RFQItem> {
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to create RFQ");
+    throw new Error(parseErrorMessage(errorData, "Failed to create RFQ"));
   }
   return res.json();
 }
@@ -131,7 +155,7 @@ export async function submitQuote(rfqId: string, payload: SubmitBidPayload): Pro
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || "Failed to submit quote");
+    throw new Error(parseErrorMessage(errorData, "Failed to submit quote"));
   }
   return res.json();
 }

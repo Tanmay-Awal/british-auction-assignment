@@ -17,8 +17,8 @@ erDiagram
         timestamp original_bid_close_time
         timestamp forced_bid_close_time
         boolean is_british_auction
-        integer trigger_window_minutes
-        integer extension_duration_minutes
+        numeric trigger_window_minutes
+        numeric extension_duration_minutes
         varchar extension_trigger_type
         varchar status
         timestamp created_at

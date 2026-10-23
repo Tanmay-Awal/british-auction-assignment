@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
@@ -7,15 +7,15 @@ from app.models.enums import AuctionStatus, ExtensionTriggerType
 
 
 class RFQBase(BaseModel):
-    reference_id: str = Field(..., min_length=2, max_length=50, example="RFQ-2026-LON-NYC")
-    title: str = Field(..., min_length=3, max_length=255, example="London to New York 20x40ft FCL")
-    pickup_date: datetime = Field(..., example="2026-11-15T10:00:00Z")
-    bid_start_time: datetime = Field(..., example="2026-10-22T10:00:00Z")
-    bid_close_time: datetime = Field(..., example="2026-10-22T18:00:00Z")
-    forced_bid_close_time: datetime = Field(..., example="2026-10-22T19:00:00Z")
+    reference_id: str = Field(..., min_length=2, max_length=50, json_schema_extra={"example": "RFQ-2026-LON-NYC"})
+    title: str = Field(..., min_length=3, max_length=255, json_schema_extra={"example": "London to New York 20x40ft FCL"})
+    pickup_date: datetime = Field(..., json_schema_extra={"example": "2026-11-15T10:00:00Z"})
+    bid_start_time: datetime = Field(..., json_schema_extra={"example": "2026-10-22T10:00:00Z"})
+    bid_close_time: datetime = Field(..., json_schema_extra={"example": "2026-10-22T18:00:00Z"})
+    forced_bid_close_time: datetime = Field(..., json_schema_extra={"example": "2026-10-22T19:00:00Z"})
     is_british_auction: bool = Field(default=True)
-    trigger_window_minutes: Decimal = Field(default=Decimal("10.0"), gt=0, example=10.0)
-    extension_duration_minutes: Decimal = Field(default=Decimal("5.0"), gt=0, example=5.0)
+    trigger_window_minutes: Decimal = Field(default=Decimal("10.0"), gt=0, json_schema_extra={"example": 10.0})
+    extension_duration_minutes: Decimal = Field(default=Decimal("5.0"), gt=0, json_schema_extra={"example": 5.0})
     extension_trigger_type: ExtensionTriggerType = Field(default=ExtensionTriggerType.BID_RECEIVED)
 
     @model_validator(mode="after")
@@ -58,8 +58,7 @@ class RFQListItem(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RFQDetails(RFQListItem):

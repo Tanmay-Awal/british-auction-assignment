@@ -76,3 +76,40 @@ async def test_rfq_creation_and_listing():
         res_logs = await ac.get(f"/api/rfqs/{rfq_id}/logs")
         assert res_logs.status_code == 200
         assert len(res_logs.json()) >= 2  # Created + Bid Submitted
+
+        # Duplicate RFQ Reference ID -> 409 Conflict
+        res_dup = await ac.post("/api/rfqs", json=payload)
+        assert res_dup.status_code == 409
+        assert "already exists" in res_dup.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_quote_submission_validation_errors():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        fake_id = str(uuid4())
+        # Past quote validity -> 422 Unprocessable Entity
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+        bad_payload = {
+            "carrier_name": "Invalid Carrier",
+            "freight_charges": 1000.0,
+            "origin_charges": 100.0,
+            "destination_charges": 100.0,
+            "transit_time_days": 10,
+            "quote_validity": yesterday
+        }
+        res = await ac.post(f"/api/rfqs/{fake_id}/bids", json=bad_payload)
+        assert res.status_code == 422
+
+        # Non-existent RFQ -> 404 Not Found
+        tomorrow = (datetime.now(timezone.utc) + timedelta(days=5)).date().isoformat()
+        good_payload = {
+            "carrier_name": "Valid Carrier",
+            "freight_charges": 1000.0,
+            "origin_charges": 100.0,
+            "destination_charges": 100.0,
+            "transit_time_days": 10,
+            "quote_validity": tomorrow
+        }
+        res_404 = await ac.post(f"/api/rfqs/{fake_id}/bids", json=good_payload)
+        assert res_404.status_code == 404

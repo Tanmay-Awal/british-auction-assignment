@@ -112,18 +112,22 @@ The system supports all 3 extension triggers defined in Section 6.3 of the speci
 
 ---
 
-## ⚡ 60-Second Demo for Evaluators
+## ⚡ 60-Second Evaluation Walkthrough
 
-When evaluating the application, you don't need to wait 10 minutes to test extensions:
+When evaluating the application, you can test British auction extensions immediately:
 
-1. Go to `http://localhost:3000/rfqs/create`.
-2. Click the top-right button: **"⚡ Populate 2-Minute Demo Preset"**.
-   * Automatically sets an auction closing in **90 seconds**, with a **60-second trigger window**, a **30-second extension**, and a **4-minute hard ceiling**.
-3. Click **"Create RFQ & Launch Auction"**.
-4. You are taken immediately into the **Live Auction Room**.
-5. Observe the amber alert: *"⚡ Trigger Window Active"*.
-6. Click any **Carrier Preset** (e.g. *CMA CGM $1,800.00*) and hit **Submit Carrier Quote**.
-7. **Watch the live countdown immediately leap by +30 seconds**, while the Leaderboard recalculates ranks and the Activity Feed logs the exact justification!
+1. **Option A: Test Pre-Seeded Live Trigger Window (Instant)**:
+   * Open `http://localhost:3000`.
+   * Click the live auction card: **`RFQ-SHA-LAX-002`** (Shanghai to Los Angeles), which is pre-seeded active inside its trigger window with the amber alert *"⚡ Trigger Window Active"*.
+   * Under **Submit carrier quote**, click any Carrier Preset (e.g. *CMA CGM $1,800.00*) or enter custom quote figures.
+   * Click **Submit carrier quote**.
+   * **Watch the live countdown immediately leap by +5 minutes**, while the Leaderboard dynamically recalculates ranks (L1..Ln) and the Activity Feed logs the exact justification!
+
+2. **Option B: Create a Fresh RFQ**:
+   * Navigate to `http://localhost:3000/rfqs/create`.
+   * Enter reference ID (e.g., `RFQ-DEMO-01`), route, and schedule (e.g., bid close time 2 minutes ahead, forced close 10 minutes ahead).
+   * British Auction rules are enabled with a 3m window and 2m extension.
+   * Click **Create RFQ & launch auction** to enter the Live Auction Room.
 
 ---
 

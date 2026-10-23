@@ -177,7 +177,7 @@ class AuctionEngine:
         # Lowest total_amount wins; earlier timestamp breaks ties
         new_rank = 1
         for b in existing_bids:
-            if total_quote > b.total_amount:
+            if total_quote >= b.total_amount:
                 new_rank += 1
             else:
                 break

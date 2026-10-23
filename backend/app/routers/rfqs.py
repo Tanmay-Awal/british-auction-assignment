@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, asc
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
@@ -128,8 +129,13 @@ async def list_rfqs(
     """
     Auction Listing Page endpoint (PDF Section 8).
     Returns list of RFQs with status, current lowest bid, and countdown metrics.
+    Uses selectinload to eagerly fetch bids in a single batched query (eliminates N+1).
     """
-    stmt = select(RFQ).order_by(desc(RFQ.created_at))
+    stmt = (
+        select(RFQ)
+        .options(selectinload(RFQ.bids))
+        .order_by(desc(RFQ.created_at))
+    )
     result = await db.execute(stmt)
     rfqs = result.scalars().all()
 
@@ -137,22 +143,14 @@ async def list_rfqs(
     items = []
     
     for rfq in rfqs:
-        # Load bids for lowest quote computation
-        bids_stmt = select(Bid).where(Bid.rfq_id == rfq.id).order_by(asc(Bid.total_amount), asc(Bid.created_at))
-        bids_res = await db.execute(bids_stmt)
-        bids_list = bids_res.scalars().all()
-
+        bids_list = rfq.bids or []
         computed_status = evaluate_auction_status(rfq, now)
-        if rfq.status != computed_status:
-            rfq.status = computed_status
-            await db.flush()
 
         if status_filter and computed_status.upper() != status_filter.upper():
             continue
 
         items.append(build_rfq_list_item(rfq, now, bids=bids_list))
 
-    await db.commit()
     return items
 
 
@@ -161,7 +159,7 @@ async def get_rfq_details(rfq_id: UUID, db: AsyncSession = Depends(get_db)):
     """
     Auction Details Page header information (PDF Section 8).
     """
-    stmt = select(RFQ).where(RFQ.id == rfq_id)
+    stmt = select(RFQ).options(selectinload(RFQ.bids)).where(RFQ.id == rfq_id)
     rfq = await db.scalar(stmt)
     if not rfq:
         raise HTTPException(
@@ -170,17 +168,7 @@ async def get_rfq_details(rfq_id: UUID, db: AsyncSession = Depends(get_db)):
         )
 
     now = datetime.now(timezone.utc)
-    bids_stmt = select(Bid).where(Bid.rfq_id == rfq.id).order_by(asc(Bid.total_amount), asc(Bid.created_at))
-    bids_res = await db.execute(bids_stmt)
-    bids_list = bids_res.scalars().all()
-
-    computed_status = evaluate_auction_status(rfq, now)
-    if rfq.status != computed_status:
-        rfq.status = computed_status
-        await db.commit()
-        await db.refresh(rfq)
-
-    return build_rfq_list_item(rfq, now, bids=bids_list)
+    return build_rfq_list_item(rfq, now, bids=rfq.bids or [])
 
 
 @router.delete("/{rfq_id}", status_code=status.HTTP_204_NO_CONTENT)
