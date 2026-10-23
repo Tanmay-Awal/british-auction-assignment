@@ -767,7 +767,6 @@ The database seeder (`backend/seed.py`) populates 5 realistic RFQ scenarios:
 ├── docs/
 │   ├── HLD.md                     # High-Level Design document
 │   └── SCHEMA.md                  # Database schema design document
-├── [Assignment] British Auction in RFQ System (1).pdf
 └── README.md
 ```
 
