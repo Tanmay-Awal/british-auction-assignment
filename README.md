@@ -19,7 +19,7 @@
 - [2. Core Business Logic & Auction Mechanics](#2-core-business-logic--auction-mechanics)
 - [3. Key Features](#3-key-features)
 - [4. Technology Stack](#4-technology-stack)
-- [5. System Architecture](#5-system-architecture)
+- [5. High-Level Design (HLD) & System Architecture](#5-high-level-design-hld--system-architecture)
 - [6. Request Lifecycle & Concurrency Control](#6-request-lifecycle--concurrency-control)
 - [7. Core Application Flows](#7-core-application-flows)
 - [8. Database Architecture & Schema](#8-database-architecture--schema)
@@ -137,33 +137,47 @@ The engine implements three distinct extension triggers via `BaseExtensionStrate
 
 ---
 
-## 5. System Architecture
+## 5. High-Level Design (HLD) & System Architecture
+
+> 📄 **Deliverable 1 Reference**: See [`docs/HLD.md`](docs/HLD.md) for the dedicated High-Level Design document accompanying this assignment.
+
+The system is designed as a decoupled, layered client-server architecture separating presentation, API routing, auction domain logic, and relational persistence:
 
 ```mermaid
 flowchart TB
-    subgraph Client ["Client Layer (Next.js 16 App Router)"]
-        Dashboard["Listing Dashboard<br/>• Live Countdowns<br/>• Status Filter Tabs<br/>• Route Search"]
-        CreateRFQ["RFQ Creator<br/>• Dynamic Window Inputs<br/>• Date Validations"]
-        AuctionRoom["Live Auction Room<br/>• Real-Time Ticker<br/>• Leaderboard (L1..Ln)<br/>• Audit Activity Feed"]
+    subgraph Users ["Actors & Users"]
+        Shipper["👤 Shipper / Logistics Manager<br/>(Creates RFQs, Monitors Tenders)"]
+        Carrier["🚢 Ocean / Air Carrier<br/>(Submits Multi-Component Quotes)"]
     end
 
-    subgraph API ["API Gateway Layer (FastAPI)"]
-        RouterRFQ["/api/rfqs<br/>(Listing & CRUD)"]
-        RouterBid["/api/rfqs/{id}/bids<br/>(Bidding & Rankings)"]
-        RouterLog["/api/rfqs/{id}/logs<br/>(Audit Trail)"]
+    subgraph ClientLayer ["1. Client Layer (Next.js 16 + React 19 + Tailwind CSS)"]
+        Dashboard["Listing Dashboard<br/>(/)<br/>• Live Countdowns<br/>• Status Filters (Active, Closed, Draft)<br/>• Route Search"]
+        CreateRFQ["RFQ Creator<br/>(/rfqs/create)<br/>• Trade Lane & Schedule Config<br/>• British Auction Window Setup"]
+        AuctionRoom["Live Auction Room<br/>(/rfqs/[id])<br/>• Real-Time Countdown Ticker<br/>• Amber Trigger Alert Pulse<br/>• Carrier Presets & Bid Form<br/>• Dynamic L1..Ln Leaderboard"]
     end
 
-    subgraph Engine ["Auction Engine (Domain Service)"]
-        LockMgr["Row-Level Concurrency<br/>(SELECT ... FOR UPDATE)"]
-        StateEval["Wall-Clock State Evaluator<br/>(DRAFT / ACTIVE / CLOSED)"]
-        StrategyEngine["Strategy Pattern Evaluator<br/>• BidReceivedStrategy<br/>• AnyRankChangeStrategy<br/>• L1RankChangeStrategy"]
+    subgraph APILayer ["2. API Layer (FastAPI ASGI)"]
+        RouterRFQ["/api/rfqs<br/>(Listing, CRUD & Computed Stats)"]
+        RouterBid["/api/rfqs/{id}/bids<br/>(Bid Submissions & Rankings)"]
+        RouterLog["/api/rfqs/{id}/logs<br/>(Audit Activity Logs)"]
     end
 
-    subgraph DB ["Persistence Layer (PostgreSQL)"]
-        TableRFQ[("rfqs<br/>• Timestamps & Ceiling<br/>• Extension Rules")]
-        TableBid[("bids<br/>• Component Charges<br/>• L1..Ln Ranks")]
-        TableLog[("rfq_activity_logs<br/>• Immutable Events")]
+    subgraph EngineLayer ["3. Domain Service Layer (Auction Engine)"]
+        LockMgr["Concurrency Row Lock<br/>(SELECT ... FOR UPDATE)"]
+        StateEval["Wall-Clock State Evaluator<br/>(DRAFT / ACTIVE / CLOSED / FORCE_CLOSED)"]
+        StrategyEngine["Extension Rule Strategies<br/>• BID_RECEIVED Strategy<br/>• ANY_RANK_CHANGE Strategy<br/>• L1_RANK_CHANGE Strategy"]
+        RankEngine["Leaderboard Evaluator<br/>(Sort by Price, Created At)"]
     end
+
+    subgraph StorageLayer ["4. Persistence Layer (PostgreSQL)"]
+        TableRFQ[("rfqs<br/>• Timestamps & Schedule<br/>• Dynamic Close Time<br/>• Forced Close Ceiling")]
+        TableBid[("bids<br/>• Freight, Origin, Dest Charges<br/>• Total Amount & Transit Days<br/>• Submission Rank")]
+        TableLog[("rfq_activity_logs<br/>• Extension Events<br/>• Previous / New Close Times<br/>• Audit Narrative")]
+    end
+
+    Shipper -->|Creates RFQs & Monitors| Dashboard
+    Shipper -->|Submits RFQ Setup| CreateRFQ
+    Carrier -->|Submits Quotes & Views L1 Rank| AuctionRoom
 
     Dashboard -->|GET /api/rfqs| RouterRFQ
     CreateRFQ -->|POST /api/rfqs| RouterRFQ
@@ -171,20 +185,30 @@ flowchart TB
     AuctionRoom -->|POST /api/rfqs/{id}/bids| RouterBid
     AuctionRoom -->|GET /api/rfqs/{id}/logs| RouterLog
 
-    RouterRFQ --> Engine
-    RouterBid --> Engine
-    RouterLog --> Engine
+    RouterRFQ --> EngineLayer
+    RouterBid --> EngineLayer
+    RouterLog --> EngineLayer
 
-    Engine --> LockMgr
-    Engine --> StateEval
-    Engine --> StrategyEngine
+    EngineLayer --> LockMgr
+    EngineLayer --> StateEval
+    EngineLayer --> StrategyEngine
+    EngineLayer --> RankEngine
 
-    LockMgr -->|Acquire Exclusive Lock| TableRFQ
-    StrategyEngine -->|Query Prior Bids| TableBid
-    Engine -->|Update bid_close_time| TableRFQ
-    Engine -->|Insert Quote| TableBid
-    Engine -->|Insert Audit Entry| TableLog
+    LockMgr -->|Acquires Exclusive Lock| TableRFQ
+    StrategyEngine -->|Inspects Prior Bids| TableBid
+    EngineLayer -->|Updates bid_close_time| TableRFQ
+    EngineLayer -->|Inserts Carrier Quote| TableBid
+    EngineLayer -->|Writes Audit Log| TableLog
 ```
+
+### Architectural Layer Responsibilities
+
+| Layer | Responsibility | Key Technologies |
+| :--- | :--- | :--- |
+| **1. Client Layer** | Renders interactive dashboards, manages local countdown tickers via `setInterval`, handles user inputs, validates dates, and displays real-time ranking. | Next.js 16 (App Router), React 19, Tailwind CSS v4, Lucide React |
+| **2. API Layer** | Validates incoming JSON payloads via Pydantic DTOs, handles CORS, and exposes RESTful endpoints for RFQs, bids, and logs. | FastAPI 0.115.6, Uvicorn 0.34.0, Pydantic V2 |
+| **3. Auction Engine** | Pure business logic: acquires exclusive row locks (`SELECT FOR UPDATE`), evaluates wall-clock temporal states, applies Strategy Pattern extension rules, and calculates quote ranks ($L_1..L_n$). | Python async engine, Strategy Pattern (`app/services/`) |
+| **4. Persistence Layer** | Enforces relational integrity (`ON DELETE CASCADE`), executes atomic transactions, and enforces database-level check constraints on timestamps and charges. | PostgreSQL 14+, SQLAlchemy 2.0 (asyncpg) |
 
 ---
 
