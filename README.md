@@ -144,61 +144,65 @@ The engine implements three distinct extension triggers via `BaseExtensionStrate
 The system is designed as a decoupled, layered client-server architecture separating presentation, API routing, auction domain logic, and relational persistence:
 
 ```mermaid
-flowchart TB
-    subgraph Users ["Actors & Users"]
-        Shipper["👤 Shipper / Logistics Manager<br/>(Creates RFQs, Monitors Tenders)"]
-        Carrier["🚢 Ocean / Air Carrier<br/>(Submits Multi-Component Quotes)"]
+graph TB
+    subgraph Actors ["Users & Actors"]
+        User_Shipper["👤 Enterprise Shipper<br/>(Procurement Manager)"]
+        User_Carrier["🚢 Ocean & Air Carrier<br/>(Freight Supplier)"]
     end
 
-    subgraph ClientLayer ["1. Client Layer (Next.js 16 + React 19 + Tailwind CSS)"]
-        Dashboard["Listing Dashboard<br/>(/)<br/>• Live Countdowns<br/>• Status Filters (Active, Closed, Draft)<br/>• Route Search"]
-        CreateRFQ["RFQ Creator<br/>(/rfqs/create)<br/>• Trade Lane & Schedule Config<br/>• British Auction Window Setup"]
-        AuctionRoom["Live Auction Room<br/>(/rfqs/[id])<br/>• Real-Time Countdown Ticker<br/>• Amber Trigger Alert Pulse<br/>• Carrier Presets & Bid Form<br/>• Dynamic L1..Ln Leaderboard"]
+    subgraph FrontendApp ["Presentation Tier (Next.js 16 + React 19)"]
+        UI_Dashboard["RFQ Dashboard<br/>• Status Filters<br/>• Route Search<br/>• Live Countdowns"]
+        UI_Creator["RFQ Creation Portal<br/>• Route & Cargo Spec<br/>• British Auction Windows"]
+        UI_AuctionRoom["Live Auction Room<br/>• Real-Time Countdown Ticker<br/>• Amber Trigger Alert Pulse<br/>• Dynamic L1..Ln Leaderboard<br/>• Carrier Presets & Bid Form"]
     end
 
-    subgraph APILayer ["2. API Layer (FastAPI ASGI)"]
-        RouterRFQ["/api/rfqs<br/>(Listing, CRUD & Computed Stats)"]
-        RouterBid["/api/rfqs/{id}/bids<br/>(Bid Submissions & Rankings)"]
-        RouterLog["/api/rfqs/{id}/logs<br/>(Audit Activity Logs)"]
+    subgraph APIGateway ["API Gateway & Routing Tier (FastAPI ASGI)"]
+        API_RFQs["RFQ Router<br/>/api/rfqs"]
+        API_Bids["Bids Router<br/>/api/rfqs/:id/bids"]
+        API_Logs["Activity Logs Router<br/>/api/rfqs/:id/logs"]
+        API_Validation["Pydantic Validation<br/>Request DTOs & Schemas"]
     end
 
-    subgraph EngineLayer ["3. Domain Service Layer (Auction Engine)"]
-        LockMgr["Concurrency Row Lock<br/>(SELECT ... FOR UPDATE)"]
-        StateEval["Wall-Clock State Evaluator<br/>(DRAFT / ACTIVE / CLOSED / FORCE_CLOSED)"]
-        StrategyEngine["Extension Rule Strategies<br/>• BID_RECEIVED Strategy<br/>• ANY_RANK_CHANGE Strategy<br/>• L1_RANK_CHANGE Strategy"]
-        RankEngine["Leaderboard Evaluator<br/>(Sort by Price, Created At)"]
+    subgraph BusinessEngine ["Domain Service Tier (Auction Engine)"]
+        Service_Lock["Concurrency Control<br/>Row-Level Lock (SELECT FOR UPDATE)"]
+        Service_State["Wall-Clock State Resolver<br/>DRAFT / ACTIVE / CLOSED / FORCE_CLOSED"]
+        Service_Strategy["Strategy Pattern Extension Engine<br/>• Bid Received Trigger<br/>• Any Rank Change Trigger<br/>• L1 Rank Change Trigger"]
+        Service_Ranking["Ranking & Tie-Breaker Service<br/>Sort by Price ASC, Timestamp ASC"]
+        Service_Audit["Immutable Audit Logger<br/>Lifecycle & Extension Events"]
     end
 
-    subgraph StorageLayer ["4. Persistence Layer (PostgreSQL)"]
-        TableRFQ[("rfqs<br/>• Timestamps & Schedule<br/>• Dynamic Close Time<br/>• Forced Close Ceiling")]
-        TableBid[("bids<br/>• Freight, Origin, Dest Charges<br/>• Total Amount & Transit Days<br/>• Submission Rank")]
-        TableLog[("rfq_activity_logs<br/>• Extension Events<br/>• Previous / New Close Times<br/>• Audit Narrative")]
+    subgraph DatabaseTier ["Persistence Tier (PostgreSQL 14+)"]
+        DB_RFQs[("rfqs<br/>Tender Config, Timestamps & Hard Ceiling")]
+        DB_Bids[("bids<br/>Component Costs & L1..Ln Quotes")]
+        DB_Logs[("rfq_activity_logs<br/>Audit Records & Justifications")]
     end
 
-    Shipper -->|Creates RFQs & Monitors| Dashboard
-    Shipper -->|Submits RFQ Setup| CreateRFQ
-    Carrier -->|Submits Quotes & Views L1 Rank| AuctionRoom
+    User_Shipper -->|Creates RFQ & Monitors Tenders| UI_Dashboard
+    User_Shipper -->|Configures British Auction Rules| UI_Creator
+    User_Carrier -->|Submits Quotes & Views L1 Rank| UI_AuctionRoom
 
-    Dashboard -->|GET /api/rfqs| RouterRFQ
-    CreateRFQ -->|POST /api/rfqs| RouterRFQ
-    AuctionRoom -->|GET /api/rfqs/{id}| RouterRFQ
-    AuctionRoom -->|POST /api/rfqs/{id}/bids| RouterBid
-    AuctionRoom -->|GET /api/rfqs/{id}/logs| RouterLog
+    UI_Dashboard -->|HTTP GET| API_RFQs
+    UI_Creator -->|HTTP POST| API_RFQs
+    UI_AuctionRoom -->|HTTP GET & POST| API_Bids
+    UI_AuctionRoom -->|HTTP GET| API_Logs
 
-    RouterRFQ --> EngineLayer
-    RouterBid --> EngineLayer
-    RouterLog --> EngineLayer
+    API_RFQs --> API_Validation
+    API_Bids --> API_Validation
+    API_Logs --> API_Validation
 
-    EngineLayer --> LockMgr
-    EngineLayer --> StateEval
-    EngineLayer --> StrategyEngine
-    EngineLayer --> RankEngine
+    API_Validation --> BusinessEngine
 
-    LockMgr -->|Acquires Exclusive Lock| TableRFQ
-    StrategyEngine -->|Inspects Prior Bids| TableBid
-    EngineLayer -->|Updates bid_close_time| TableRFQ
-    EngineLayer -->|Inserts Carrier Quote| TableBid
-    EngineLayer -->|Writes Audit Log| TableLog
+    BusinessEngine --> Service_Lock
+    BusinessEngine --> Service_State
+    BusinessEngine --> Service_Strategy
+    BusinessEngine --> Service_Ranking
+    BusinessEngine --> Service_Audit
+
+    Service_Lock -->|Exclusive Row Lock| DB_RFQs
+    Service_Strategy -->|Evaluate Historical Quotes| DB_Bids
+    BusinessEngine -->|Persist New Close Time| DB_RFQs
+    BusinessEngine -->|Insert Carrier Bid| DB_Bids
+    Service_Audit -->|Record Immutable Event| DB_Logs
 ```
 
 ### Architectural Layer Responsibilities
@@ -281,7 +285,7 @@ sequenceDiagram
     participant DB as PostgreSQL (AsyncSession)
 
     Carrier->>UI: Enters Quote & Clicks "Submit carrier quote"
-    UI->>API: POST /api/rfqs/{id}/bids
+    UI->>API: POST /api/rfqs/:id/bids
     API->>API: Validate Payload via Pydantic (BidCreate)
     API->>Engine: submit_quote(db, rfq_id, quote_data)
     
