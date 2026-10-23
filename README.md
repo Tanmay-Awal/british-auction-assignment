@@ -61,9 +61,9 @@ Unlike forward auctions (where buyers bid prices upward), freight procurement op
 ### 2.2 Dynamic Extension Calculation
 When an RFQ has `is_british_auction = true`, the engine evaluates every incoming bid against configured business rules:
 - **Trigger Window Check**: Evaluates if the current wall-clock UTC time falls within:
-  $$t_{\text{current}} \in [t_{\text{close}} - X, \; t_{\text{close}}]$$
+  $$\text{Current Time} \in [\text{Close Time} - X, \; \text{Close Time}]$$
 - **Extension Clamping**: If an extension is triggered, the new close time is strictly clamped to the hard ceiling:
-  $$t_{\text{new\_close}} = \min(t_{\text{current\_close}} + Y, \; t_{\text{forced\_close}})$$
+  $$\text{New Close Time} = \min(\text{Current Close Time} + Y, \; \text{Forced Close Time})$$
 - **Terminal State**: Once the clock reaches `forced_bid_close_time`, the auction transitions to `FORCE_CLOSED` and rejects all further bids.
 
 ### 2.3 The 3 Extension Strategies (Strategy Pattern)
@@ -103,7 +103,7 @@ The engine implements three distinct extension triggers via `BaseExtensionStrate
 
 ### Multi-Component Bidding & Ranking
 - **Itemized Charge Decomposition**: Validates that quotes consist of `freight_charges`, `origin_charges`, and `destination_charges`, where:
-  $$\text{total\_amount} = \text{freight\_charges} + \text{origin\_charges} + \text{destination\_charges}$$
+  $$\text{Total Amount} = \text{Freight Charges} + \text{Origin Charges} + \text{Destination Charges}$$
 - **Deterministic Rank Calculation**: Ranks quotes by `total_amount ASC, created_at ASC` (earlier submission timestamp breaks price ties).
 - **Carrier Quick Presets**: Instant quote buttons for global carriers (Maersk, MSC, CMA CGM, Hapag-Lloyd, ONE, Evergreen).
 
@@ -301,51 +301,51 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-    RFQS ||--o{ BIDS : "receives (1:N)"
-    RFQS ||--o{ RFQ_ACTIVITY_LOGS : "records (1:N)"
+    RFQS ||--o{ BIDS : receives
+    RFQS ||--o{ RFQ_ACTIVITY_LOGS : records
 
     RFQS {
-        uuid id PK "UUID primary key"
-        varchar reference_id UK "Unique external code"
-        varchar title "Trade lane description"
-        timestamptz pickup_date "Cargo ready date"
-        timestamptz bid_start_time "Bidding start time"
-        timestamptz bid_close_time "Dynamic close deadline"
-        timestamptz original_bid_close_time "Initial close deadline"
-        timestamptz forced_bid_close_time "Hard ceiling deadline"
-        boolean is_british_auction "British auction toggle"
-        numeric trigger_window_minutes "Trigger window (X mins)"
-        numeric extension_duration_minutes "Extension duration (Y mins)"
-        varchar extension_trigger_type "BID_RECEIVED | ANY_RANK_CHANGE | L1_RANK_CHANGE"
-        varchar status "DRAFT | ACTIVE | CLOSED | FORCE_CLOSED"
-        timestamptz created_at "Record creation time"
-        timestamptz updated_at "Record update time"
+        uuid id PK
+        string reference_id UK
+        string title
+        timestamp pickup_date
+        timestamp bid_start_time
+        timestamp bid_close_time
+        timestamp original_bid_close_time
+        timestamp forced_bid_close_time
+        boolean is_british_auction
+        numeric trigger_window_minutes
+        numeric extension_duration_minutes
+        string extension_trigger_type
+        string status
+        timestamp created_at
+        timestamp updated_at
     }
 
     BIDS {
-        uuid id PK "UUID primary key"
-        uuid rfq_id FK "References rfqs.id ON DELETE CASCADE"
-        varchar carrier_name "Carrier name"
-        numeric freight_charges "Base freight charge"
-        numeric origin_charges "Origin port handling fees"
-        numeric destination_charges "Destination port fees"
-        numeric total_amount "Sum of all charges"
-        integer transit_time_days "Estimated transit days"
-        date quote_validity "Rate validity expiration date"
-        integer rank_at_submission "Rank at time of placement"
-        timestamptz created_at "Placement timestamp"
+        uuid id PK
+        uuid rfq_id FK
+        string carrier_name
+        numeric freight_charges
+        numeric origin_charges
+        numeric destination_charges
+        numeric total_amount
+        int transit_time_days
+        date quote_validity
+        int rank_at_submission
+        timestamp created_at
     }
 
     RFQ_ACTIVITY_LOGS {
-        uuid id PK "UUID primary key"
-        uuid rfq_id FK "References rfqs.id ON DELETE CASCADE"
-        varchar event_type "ActivityEventType"
-        text description "Narrative audit description"
-        numeric extension_minutes "Minutes added to deadline"
-        timestamptz previous_close_time "Close time before extension"
-        timestamptz new_close_time "Close time after extension"
-        varchar actor "Carrier or System name"
-        timestamptz created_at "Event timestamp"
+        uuid id PK
+        uuid rfq_id FK
+        string event_type
+        text description
+        numeric extension_minutes
+        timestamp previous_close_time
+        timestamp new_close_time
+        string actor
+        timestamp created_at
     }
 ```
 
